@@ -3,6 +3,7 @@ TOKENS: tuple[str, ...] = (
     # Estrutura do programa
     "PROGRAM",
     "END",
+    "STOP",
     "RETURN",
     
     # Subprogramas
@@ -32,13 +33,8 @@ TOKENS: tuple[str, ...] = (
     # Algumas funções intrínsecas
     "MOD",
     "SQRT",
-    "INT",
-    "FLOAT",
     "MAX",
     "MIN",
-    
-    # Power
-    "POWER",    # **
     
     # ! TOKENS ! #
     # Identificadores
@@ -68,6 +64,21 @@ TOKENS: tuple[str, ...] = (
     # Booleans
     "TRUE",    # .TRUE.
     "FALSE",   # .FALSE.
+    
+    # Power
+    "POWER",    # **
+    
+    # Newline
+    "NEWLINE",
 )
 
-LITERALS: str = "+-*/=(),'"
+KEYWORDS: frozenset[str] = frozenset({
+    "PROGRAM", "END", "STOP", "RETURN",
+    "FUNCTION", "SUBROUTINE", "CALL",
+    "INTEGER", "REAL", "LOGICAL", "CHARACTER",
+    "IF", "THEN", "ELSE", "ENDIF", "DO", "CONTINUE", "GOTO",
+    "READ", "PRINT",
+    "MOD", "SQRT", "MAX", "MIN",
+})
+
+LITERALS: str = "+-*/=(),"
