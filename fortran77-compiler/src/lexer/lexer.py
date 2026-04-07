@@ -135,7 +135,7 @@ class Lexer:
         self._errors = []
         self._current_src = src
         
-        preprocessor = Preprocessor(src)
+        preprocessor = Preprocessor(src) # Faz o pré-processamento do código original
         logical_lines = preprocessor.process()
         
         tokens: list[lex.LexToken] = []
