@@ -1,6 +1,6 @@
 import argparse
 
-from lexer import Preprocessor, Lexer
+from lexer import Lexer
 
 def main():
     arg_parser = argparse.ArgumentParser(description="Compilador de Fortran 77")
