@@ -5,3 +5,7 @@
 __pycache__/
 *.pyc
 *.pyo
+
+# Parser files
+parser.out
+parsetab.py
