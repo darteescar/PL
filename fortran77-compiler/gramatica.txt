@@ -1,0 +1,128 @@
+===================
+    Gramática
+===================
+
+program               -> program_unit
+                       | program program_unit
+
+program_unit          -> main_program
+                       | function_subprogram
+                       | subroutine_subprogram
+
+main_program          -> PROGRAM IDEN NEWLINE body END NEWLINE
+
+function_subprogram   -> type_spec FUNCTION IDEN '(' param_list ')' NEWLINE body END NEWLINE
+                       | FUNCTION IDEN '(' param_list ')' NEWLINE body END NEWLINE
+
+subroutine_subprogram -> SUBROUTINE IDEN '(' param_list ')' NEWLINE body END NEWLINE
+                       | SUBROUTINE IDEN '(' ')' NEWLINE body END NEWLINE
+
+param_list            -> IDEN
+                       | param_list ',' IDEN
+
+body                  -> decl_section stmt_section
+
+decl_section          -> /* vazio */
+                       | decl_section declaration NEWLINE
+
+stmt_section          -> /* vazio */
+                       | stmt_section stmt_line
+
+stmt_line             -> statement NEWLINE
+                       | LABEL statement NEWLINE
+
+declaration           -> type_spec var_decl_list
+
+type_spec             -> INTEGER
+                       | REAL
+                       | LOGICAL
+                       | CHARACTER
+                       | CHARACTER '*' INT_LIT
+
+var_decl_list         -> var_decl
+                       | var_decl_list ',' var_decl
+
+var_decl              -> IDEN
+                       | IDEN '(' dim_list ')'
+
+dim_list              -> dim_spec
+                       | dim_list ',' dim_spec
+
+dim_spec              -> expr
+
+statement             -> assignment_stmt
+                       | if_stmt
+                       | do_stmt
+                       | goto_stmt
+                       | print_stmt
+                       | read_stmt
+                       | call_stmt
+                       | return_stmt
+                       | stop_stmt
+
+assignment_stmt       -> variable '=' expr
+
+if_stmt               -> if_then_block
+                       | logical_if_stmt
+
+if_then_block         -> IF '(' expr ')' THEN NEWLINE stmt_section ENDIF
+                       | IF '(' expr ')' THEN NEWLINE stmt_section ELSE NEWLINE stmt_section ENDIF
+
+logical_if_stmt       -> IF '(' expr ')' statement
+
+do_stmt               -> DO INT_LIT IDEN '=' expr ',' expr NEWLINE stmt_section LABEL CONTINUE
+                       | DO INT_LIT IDEN '=' expr ',' expr ',' expr NEWLINE stmt_section LABEL CONTINUE
+
+goto_stmt             -> GOTO INT_LIT
+
+print_stmt            -> PRINT '*' ',' io_list
+
+read_stmt             -> READ '*' ',' io_list
+
+io_list               -> io_item
+                       | io_list ',' io_item
+
+io_item               -> expr
+
+call_stmt             -> CALL IDEN '(' expr_list ')'
+                       | CALL IDEN '(' ')'
+
+return_stmt           -> RETURN
+
+stop_stmt             -> STOP
+
+expr                  -> expr OP_OR expr
+                       | expr OP_AND expr
+                       | OP_NOT expr
+                       | expr OP_EQ expr
+                       | expr OP_NE expr
+                       | expr OP_LT expr
+                       | expr OP_LE expr
+                       | expr OP_GT expr
+                       | expr OP_GE expr
+                       | expr '+' expr
+                       | expr '-' expr
+                       | expr '*' expr
+                       | expr '/' expr
+                       | expr POWER expr
+                       | '-' expr
+                       | '+' expr
+                       | '(' expr ')'
+                       | INT_LIT
+                       | REAL_LIT
+                       | STRING_LIT
+                       | TRUE
+                       | FALSE
+                       | variable
+                       | func_call
+
+variable              -> IDEN
+                       | IDEN '(' expr_list ')'
+
+expr_list             -> expr
+                       | expr_list ',' expr
+
+func_call             -> MOD '(' expr ',' expr ')'
+                       | SQRT '(' expr ')'
+                       | MAX '(' expr_list ')'
+                       | MIN '(' expr_list ')'
