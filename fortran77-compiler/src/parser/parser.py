@@ -6,13 +6,20 @@ from dataclasses import dataclass
 
 @dataclass
 class ParserError(Exception):
-    message: str
-    line:    int
+    """
+    Erro gerado durante a análise sintática.
+    """
+    message: str    # mensagem de erro
+    line:    int    # numero da linha
 
     def __str__(self) -> str:
         return f"[Parser] Linha {self.line}: {self.message}"
 
 class Parser:
+    """
+    Class da análise sintática (parser).
+    """   
+    
     tokens   = TOKENS
     literals = LITERALS
 
@@ -27,14 +34,11 @@ class Parser:
         ('right',    'POWER'),
     )
 
-    # ==================================================================
-    # GRAMÁTICA  — regras p_XXX
-    # ==================================================================
+    def __init__(self) -> None:
+        self._errors: list[ParserError] = []
+        self._parser = yacc.yacc(module=self)
 
-    # ------------------------------------------------------------------
-    # 1. Programa (unidade de tradução)
-    # ------------------------------------------------------------------
-
+    # --- Programa --------------------------------------------------
     def p_program_single(self, p):
         """program : program_unit"""
         p[0] = Program(units=[p[1]], lineno=p[1].lineno)
@@ -44,10 +48,7 @@ class Parser:
         p[1].units.append(p[2])
         p[0] = p[1]
 
-    # ------------------------------------------------------------------
-    # 2. Unidades de programa
-    # ------------------------------------------------------------------
-
+    # --- Unidades de programa --------------------------------------
     def p_program_unit_main(self, p):
         """program_unit : main_program"""
         p[0] = p[1]
@@ -60,18 +61,12 @@ class Parser:
         """program_unit : subroutine_subprogram"""
         p[0] = p[1]
 
-    # ------------------------------------------------------------------
-    # 3. Programa principal
-    # ------------------------------------------------------------------
-
+    # --- Programa principal ----------------------------------------
     def p_main_program(self, p):
         """main_program : PROGRAM IDEN NEWLINE body END NEWLINE"""
         p[0] = MainProgram(name=p[2], body=p[4], lineno=p.lineno(1))
 
-    # ------------------------------------------------------------------
-    # 4. Subprogramas
-    # ------------------------------------------------------------------
-
+    # --- Subprogramas ----------------------------------------------
     def p_function_with_type(self, p):
         """function_subprogram : type_spec FUNCTION IDEN '(' param_list ')' NEWLINE body END NEWLINE"""
         p[0] = FunctionDef(
@@ -111,10 +106,7 @@ class Parser:
         """param_list : param_list ',' IDEN"""
         p[0] = p[1] + [p[3]]
 
-    # ------------------------------------------------------------------
-    # 5. Corpo (body): declarações + instruções
-    # ------------------------------------------------------------------
-
+    # --- Body: declarações + instruções ---------------------------
     def p_body(self, p):
         """body : decl_section stmt_section"""
         p[0] = Body(
@@ -141,10 +133,7 @@ class Parser:
         """stmt_section : stmt_section stmt_line"""
         p[0] = p[1] + [p[2]]
 
-    # ------------------------------------------------------------------
-    # 6. Linhas de instrução (com ou sem label)
-    # ------------------------------------------------------------------
-
+    # --- Linhas de instrução (com ou sem label) --------------------
     def p_stmt_line_plain(self, p):
         """stmt_line : statement NEWLINE"""
         p[0] = p[1]
@@ -153,10 +142,7 @@ class Parser:
         """stmt_line : LABEL statement NEWLINE"""
         p[0] = LabeledStmt(label=p[1], stmt=p[2], lineno=p.lineno(1))
 
-    # ------------------------------------------------------------------
-    # 7. Declarações de tipo
-    # ------------------------------------------------------------------
-
+    # --- Declarações de tipo ---------------------------------------
     def p_declaration(self, p):
         """declaration : type_spec var_decl_list"""
         p[0] = TypeDecl(
@@ -166,7 +152,7 @@ class Parser:
             lineno=p.lineno(1),
         )
 
-    # type_spec: devolve string ou tuple (nome, comprimento para CHARACTER)
+    # type_spec: devolve string ou tuple
     def p_type_spec_integer(self, p):
         """type_spec : INTEGER"""
         p[0] = 'INTEGER'
@@ -219,14 +205,7 @@ class Parser:
         """dim_spec : expr"""
         p[0] = p[1]
 
-    def p_dim_spec_range(self, p):
-        """dim_spec : expr ':' expr"""
-        p[0] = BinOp(left=p[1], op=':', right=p[3], lineno=p.lineno(2))
-
-    # ------------------------------------------------------------------
-    # 8. Instruções executáveis
-    # ------------------------------------------------------------------
-
+    # --- Instruções executáveis ------------------------------------
     def p_statement_assign(self, p):
         """statement : assignment_stmt"""
         p[0] = p[1]
@@ -263,20 +242,18 @@ class Parser:
         """statement : stop_stmt"""
         p[0] = p[1]
 
-    # -- 8.1  Atribuição ------------------------------------------------
-
+    # --- Atribuição ------------------------------------------------
     def p_assignment_var(self, p):
         """assignment_stmt : variable '=' expr"""
         p[0] = Assign(target=p[1], value=p[3], lineno=p.lineno(2))
 
-    # -- 8.2  IF --------------------------------------------------------
-
+    # --- IF --------------------------------------------------------
     def p_if_stmt(self, p):
         """if_stmt : if_then_block"""
         p[0] = p[1]
 
-    def p_if_stmt_arithmetic(self, p):
-        """if_stmt : arithmetic_if_stmt"""
+    def p_if_stmt_logical(self, p):
+        """if_stmt : logical_if_stmt"""
         p[0] = p[1]
 
     # IF-THEN sem ELSE
@@ -299,13 +276,12 @@ class Parser:
             lineno=p.lineno(1),
         )
 
-    # IF aritmético (sem THEN)
-    def p_arithmetic_if(self, p):
-        """arithmetic_if_stmt : IF '(' expr ')' statement"""
-        p[0] = ArithmeticIf(condition=p[3], stmt=p[5], lineno=p.lineno(1))
+    # IF lógico (sem THEN)
+    def p_logical_if(self, p):
+        """logical_if_stmt : IF '(' expr ')' statement"""
+        p[0] = LogicalIf(condition=p[3], stmt=p[5], lineno=p.lineno(1))
 
-    # -- 8.3  DO --------------------------------------------------------
-
+    # --- DO --------------------------------------------------------
     def p_do_loop(self, p):
         """do_stmt : DO INT_LIT IDEN '=' expr ',' expr NEWLINE stmt_section LABEL CONTINUE"""
         p[0] = DoLoop(
@@ -324,20 +300,17 @@ class Parser:
             lineno=p.lineno(1),
         )
 
-    # -- 8.4  GOTO ------------------------------------------------------
-
+    # --- GOTO ------------------------------------------------------
     def p_goto(self, p):
         """goto_stmt : GOTO INT_LIT"""
         p[0] = Goto(label=p[2], lineno=p.lineno(1))
 
-    # -- 8.5  PRINT -----------------------------------------------------
-
+    # --- PRINT -----------------------------------------------------
     def p_print_stmt(self, p):
         """print_stmt : PRINT '*' ',' io_list"""
         p[0] = PrintStmt(items=p[4], lineno=p.lineno(1))
 
-    # -- 8.6  READ ------------------------------------------------------
-
+    # --- READ ------------------------------------------------------
     def p_read_stmt(self, p):
         """read_stmt : READ '*' ',' io_list"""
         p[0] = ReadStmt(targets=p[4], lineno=p.lineno(1))
@@ -355,8 +328,7 @@ class Parser:
         """io_item : expr"""
         p[0] = p[1]
 
-    # -- 8.7  CALL / RETURN / STOP --------------------------------------
-
+    # --- CALL / RETURN / STOP --------------------------------------
     def p_call_with_args(self, p):
         """call_stmt : CALL IDEN '(' expr_list ')'"""
         p[0] = CallStmt(name=p[2], args=p[4], lineno=p.lineno(1))
@@ -373,10 +345,7 @@ class Parser:
         """stop_stmt : STOP"""
         p[0] = StopStmt(lineno=p.lineno(1))
 
-    # ------------------------------------------------------------------
-    # 9. Expressões (com precedências declaradas acima)
-    # ------------------------------------------------------------------
-
+    # --- Expressões ------------------------------------------------
     # Operadores lógicos
     def p_expr_or(self, p):
         """expr : expr OP_OR expr"""
@@ -480,11 +449,8 @@ class Parser:
     def p_expr_func_call(self, p):
         """expr : func_call"""
         p[0] = p[1]
-
-    # ------------------------------------------------------------------
-    # 10. Variáveis (lado esquerdo da atribuição ou expressão)
-    # ------------------------------------------------------------------
-
+        
+    # --- Variáveis -------------------------------------------------
     def p_variable_simple(self, p):
         """variable : IDEN"""
         p[0] = Var(name=p[1], lineno=p.lineno(1))
@@ -501,15 +467,7 @@ class Parser:
         """expr_list : expr_list ',' expr"""
         p[0] = p[1] + [p[3]]
 
-    # ------------------------------------------------------------------
-    # 11. Chamadas de função
-    # ------------------------------------------------------------------
-
-    # Removido: func_call_user para evitar reduce/reduce conflict com variable_array.
-    # Na AST as chamadas a funções com nomes de IDEN normais (que não as embutidas) 
-    # serão interpretadas unicamente como `ArrayAccess` no parser. A análise semântica 
-    # converterá num `FuncCall` se o identificador estiver registado como função.
-
+    # --- Chamadas de função ----------------------------------------
     def p_func_call_mod(self, p):
         """func_call : MOD '(' expr ',' expr ')'"""
         p[0] = FuncCall(name='MOD', args=[p[3], p[5]], lineno=p.lineno(1))
@@ -526,10 +484,7 @@ class Parser:
         """func_call : MIN '(' expr_list ')'"""
         p[0] = FuncCall(name='MIN', args=p[3], lineno=p.lineno(1))
 
-    # ------------------------------------------------------------------
-    # 12. Tratamento de erros sintáticos
-    # ------------------------------------------------------------------
-
+    # --- Erros -----------------------------------------------------
     def p_error(self, p):
         if p is None:
             self._errors.append(ParserError(
@@ -548,14 +503,6 @@ class Parser:
                     break
             self._parser.restart()
 
-    # ==================================================================
-    # Construção e API pública
-    # ==================================================================
-
-    def __init__(self) -> None:
-        self._errors: list[ParserError] = []
-        self._parser = yacc.yacc(module=self)
-
     @property
     def errors(self) -> list[ParserError]:
         return list(self._errors)
@@ -565,22 +512,13 @@ class Parser:
         return len(self._errors) > 0
 
     def parse(self, source: str) -> Program | None:
-        """
-        Analisa o código-fonte Fortran 77 e devolve a AST.
-
-        Args:
-            source: código-fonte completo (string)
-
-        Returns:
-            Nó Program (raiz da AST), ou None se houver erros graves.
-        """
         self._errors = []
         lexer  = Lexer()
         result = self._parser.parse(
             input=source,
             lexer=lexer,
         )
-        # Propaga também os erros léxicos
+        
         for err in lexer.errors:
             self._errors.append(ParserError(
                 message=f"[Léxico] {err.message}",
@@ -588,24 +526,19 @@ class Parser:
             ))
         return result
 
-
-# =============================================================================
-# Visitor base  — usado pelo gerador de código e pela análise semântica
-# =============================================================================
-
+# --- Visitor -------------------------------------------------------
 class ASTVisitor:
     """
-    Visitor base para percorrer a AST.
-
-    Subclasse e sobrescreve visit_<NodeType> para os nós que te interessam.
-    generic_visit é chamado para nós sem handler específico.
+    Class para percorrer a AST criada pelo parser.
     """
 
     def visit(self, node: Node):
         return node.accept(self)
 
     def generic_visit(self, node: Node):
-        """Visita por defeito: percorre todos os filhos."""
+        """
+        Visita por defeito: percorre todos os filhos.
+        """
         for child in self._children(node):
             if isinstance(child, Node):
                 self.visit(child)
@@ -615,24 +548,14 @@ class ASTVisitor:
                         self.visit(item)
 
     def _children(self, node: Node):
-        """Devolve os valores dos campos do dataclass."""
+        """
+        Devolve os valores dos campos do dataclass.
+        """
         from dataclasses import fields
         return [getattr(node, f.name) for f in fields(node)]
 
-
-# =============================================================================
-# Pretty-printer da AST  (útil para debug)
-# =============================================================================
-
+# --- Pretty-printer da AST -----------------------------------------
 class ASTPrinter(ASTVisitor):
-    """
-    Imprime a AST de forma indentada para debug.
-
-    Uso:
-        printer = ASTPrinter()
-        printer.visit(ast)
-    """
-
     def __init__(self):
         self._indent = 0
 
@@ -645,7 +568,7 @@ class ASTPrinter(ASTVisitor):
         super().generic_visit(node)
         self._indent -= 1
 
-    # Nós folha — imprime o valor inline
+    # Nós folha
     def visit_Var(self, node):
         self._pr(f"Var({node.name})")
 

@@ -130,7 +130,7 @@ class IfThen(Node):
 
 
 @dataclass
-class ArithmeticIf(Node):
+class LogicalIf(Node):
     """
     IF (<expr>) <stmt>
     """
@@ -210,7 +210,6 @@ class StopStmt(Node):
     pass
 
 # --- Expressões ---------------------------------------------------------------
-
 @dataclass
 class BinOp(Node):
     """
@@ -244,8 +243,6 @@ class FuncCall(Node):
     args: list[Node]
 
 # --- Variáveis e literais ---------------------------------------------------
-
-
 @dataclass
 class Var(Node):
     """
