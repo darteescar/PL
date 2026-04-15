@@ -13,10 +13,10 @@ class LogicalLine:
 @dataclass
 class PreprocessorError(Exception):
     """
-    Erro de pré-processamento.
+    Erro gerado durante o pré-processamento.
     """
-    message: str
-    line_number: int
+    message: str        # mensagem de erro
+    line_number: int    # linha onde ocorreu o erro
     
     def __str__(self) -> str:
         return f"[Preprocessor] Linha {self.line_number}: {self.message}"
@@ -33,6 +33,11 @@ class Preprocessor:
         self._logical_lines: list[LogicalLine] = []
 
     def process(self) -> list[LogicalLine]:
+        """
+        Faz o processamento do código original, linha a linha
+        e gera as linhas lógicas correspondentes.
+        """
+        
         self._logical_lines = []
         original_lines = self._source_code.splitlines()
         
@@ -45,7 +50,7 @@ class Preprocessor:
         for lineno, raw_line in enumerate(original_lines, start=1):
             line = raw_line.upper() # Garantir que é tudo maiúsculo
             
-            if not line.strip():
+            if not line.strip(): # Linha vazia
                 continue
             
             if line[self._COL_COMMENT] in ('C', '*'): # Linha comentario
@@ -117,6 +122,9 @@ class Preprocessor:
         return line[self._COL_CODE_START:self._COL_CODE_END]
     
     def dump(self) -> None:
+        """
+        Imprime as linhas lógicas já processadas
+        """
         if not self._logical_lines:
             self.process()
         print(f"{'#':<4}  {'Label':<6}  {'SrcLine':<8}  Conteúdo")
