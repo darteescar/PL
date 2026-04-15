@@ -37,7 +37,7 @@ Para correr o projeto basta correr os comandos conforme são apresentados abaixo
 ```bash
 cd fortran77-compiler/src/
 
-usage: python __main__.py [-h] [-l | -p | -s | -t] file
+usage: python __main__.py [-h] [-pp | -l | -p | -s | -t] file
 
 Compilador de Fortran 77
 
@@ -46,6 +46,7 @@ positional arguments:
 
 options:
   -h, --help       show this help message and exit
+  -pp, --preprocess  Executa apenas o pré-processamento
   -l, --lexer      Executa o lexer
   -p, --parser     Executa o lexer e depois o parser
   -s, --semantic   Executa o lexer, parser e a análise semântica
@@ -99,7 +100,7 @@ To run the project just run the commands as shown below:
 ```bash
 cd fortran77-compiler/src/
 
-usage: python __main__.py [-h] [-l | -p | -s | -t] file
+usage: python __main__.py [-h] [-pp | -l | -p | -s | -t] file
 
 Fortran 77 Compiler
 
@@ -108,6 +109,7 @@ positional arguments:
 
 options:
   -h, --help       show this help message and exit
+  -pp, --preprocess  Executes only the preprocessing
   -l, --lexer      Executes the lexer
   -p, --parser     Executes the lexer and then the parser
   -s, --semantic   Executes the lexer, parser and semantic analysis
