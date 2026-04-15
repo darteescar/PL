@@ -1,6 +1,7 @@
 import argparse
 
 from lexer import Lexer
+from parser import Parser, ASTPrinter
 
 def main():
     arg_parser = argparse.ArgumentParser(description="Compilador de Fortran 77")
@@ -32,6 +33,9 @@ def main():
             
             for token in lexer:
                 print(token)
+                
+            for error in lexer.errors:
+                print(error)
 
         except FileNotFoundError:
             print(f"Erro: O ficheiro '{args.file}' não foi encontrado.")
@@ -40,8 +44,25 @@ def main():
         print("=" * 25)
         print("=> Modo Parser...")
         print("=" * 25)
-        # TODO: Executar Preprocessor + Lexer + Parser
         
+        try:
+            with open(args.file, "r", encoding="utf-8") as f:
+                src = f.read()
+
+            parser = Parser()
+            ast = parser.parse(src)
+            
+            if ast:
+                printer = ASTPrinter()
+                printer.visit(ast)
+            else:
+                print("Erro: AST não foi gerada devido a erros de parsing.")
+                for error in parser.errors:
+                    print(error)
+
+        except FileNotFoundError:
+            print(f"Erro: O ficheiro '{args.file}' não foi encontrado.")
+            
     elif args.semantic:
         print("=" * 25)
         print("=> Modo Semantic...")
