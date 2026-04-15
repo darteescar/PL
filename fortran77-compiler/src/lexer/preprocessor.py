@@ -8,7 +8,7 @@ class LogicalLine:
     """
     label: str | None   # label da linha, se existir
     content: str        # codigo da linha sem label
-    src_line: int       # numero da 1a linha original
+    src_line: int       # numero da da linha original
     
 @dataclass
 class PreprocessorError(Exception):
