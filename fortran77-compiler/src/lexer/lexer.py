@@ -7,28 +7,32 @@ from .preprocessor import Preprocessor, LogicalLine
 @dataclass
 class LexerError(Exception):
     """
-    Erro do lexer.
+    Erro gerado durante a análise léxica.
     """
-    message: str
-    line: int
-    column: int
+    message: str    # mensagem de erro
+    line: int       # linha onde ocorreu o erro
+    column: int     # coluna onde ocorreu o erro
     
     def __str__(self) -> str:
         return f"[Lexer] Linha {self.line}, Col {self.column}: {self.message}"
 
 class Lexer:
+    """
+    Class da análise léxica (lexer).
+    """
+    
     tokens = TOKENS
     literals = LITERALS
+    t_ignore = ' \t'
     
     def __init__(self) -> None:
-        self.t_ignore = ' \t'
-        self._errors: list[LexerError] = []
-        self._current_src: str = ""
-        self._token_stream = iter([])
+        self._errors: list[LexerError] = [] # lista de erros
+        self._current_src: str = ""         # código a ser analisado
+        self._token_stream = iter([])       # iterador dos tokens gerados
         
-        self.lexer = lex.lex(module=self)
+        self._lexer = lex.lex(module=self)
     
-    # Operadores relacionais
+    # --- Operadores relacionais ----------------------------------------
     def t_OP_EQ(self, t: lex.LexToken) -> lex.LexToken:
         r'\.EQ\.'
         return t
@@ -53,7 +57,7 @@ class Lexer:
         r'\.GT\.'
         return t
 
-    # Operadores lógicos
+    # --- Operadores lógicos --------------------------------------------
     def t_OP_AND(self, t: lex.LexToken) -> lex.LexToken:
         r'\.AND\.'
         return t
@@ -66,7 +70,7 @@ class Lexer:
         r'\.NOT\.'
         return t
     
-    # Booleans
+    # --- Booleans ------------------------------------------------------
     def t_TRUE(self, t: lex.LexToken) -> lex.LexToken:
         r'\.TRUE\.'
         t.value = True
@@ -77,12 +81,12 @@ class Lexer:
         t.value = False
         return t
     
-    # Power
+    # --- Potência -------------------------------------------------------
     def t_POWER(self, t: lex.LexToken) -> lex.LexToken:
         r'\*\*'
         return t
     
-    # Literais numéricos e string
+    # --- Literais numéricos e string ------------------------------------
     def t_REAL_LIT(self, t: lex.LexToken) -> lex.LexToken:
         r'\d+\.\d*(?:[ED][-+]?\d+)?|\.\d+(?:[ED][-+]?\d+)?|\d+[ED][-+]?\d+'
         t.value = float(t.value.replace('D', 'e').replace('E', 'e'))
@@ -98,12 +102,14 @@ class Lexer:
         t.value = t.value[1:-1].replace("''", "'") # Retira as plicas
         return t
     
-    # Identificadores e keywords
+    # --- Identificadores e keywords -------------------------------------
     def t_IDEN(self, t: lex.LexToken) -> lex.LexToken:
         r'[A-Z][A-Z0-9_]*'
         if t.value in KEYWORDS:
             t.type = t.value # Apanhas as keywords definidas no set
         return t
+    
+    
     
     def t_newline(self, t: lex.LexToken) -> None:
         r'\n+'
@@ -161,8 +167,7 @@ class Lexer:
  
     def _tokenize_line(self, ll: LogicalLine) -> list[lex.LexToken]:
         """
-        Divide uma LogicalLine em tokens,
-        incluindo LABEL e NEWLINE no final.
+        Divide uma LogicalLine em tokens, incluindo LABEL e NEWLINE no final.
         """
         result: list[lex.LexToken] = []
  
@@ -175,12 +180,12 @@ class Lexer:
             ))
  
         # Conteúdo da linha
-        self.lexer.lineno = ll.src_line
-        self.lexer.input(ll.content)
-        for tok in self.lexer:
+        self._lexer.lineno = ll.src_line
+        self._lexer.input(ll.content)
+        for tok in self._lexer:
             result.append(tok)
  
-        # \n do fim
+        # \n (NEWLINE) do fim
         result.append(self._make_token(
             type_  = 'NEWLINE',
             value  = '\n',
