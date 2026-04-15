@@ -496,12 +496,12 @@ class Parser:
                 message=f"Token inesperado '{p.value}' (tipo: {p.type})",
                 line=p.lineno,
             ))
-            # Recuperação: descarta tokens até ao próximo NEWLINE
+            # Descarta tokens até ao final da linha para tentar continuar a análise
             while True:
                 tok = self._parser.token()
                 if tok is None or tok.type == 'NEWLINE':
                     break
-            self._parser.restart()
+            self._parser.errok()
 
     @property
     def errors(self) -> list[ParserError]:
