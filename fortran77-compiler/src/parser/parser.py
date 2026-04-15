@@ -149,7 +149,7 @@ class Parser:
             type_name=p[1] if isinstance(p[1], str) else p[1][0],
             char_len=p[1][1] if isinstance(p[1], tuple) else None,
             variables=p[2],
-            lineno=p.lineno(1),
+            lineno=p[2][0].lineno,
         )
 
     # type_spec: devolve string ou tuple

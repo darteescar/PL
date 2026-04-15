@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from .parser import ASTVisitor
 
 @dataclass
 class Node:
@@ -8,7 +7,7 @@ class Node:
     """
     lineno: int # numero da linha
 
-    def accept(self, visitor: ASTVisitor):
+    def accept(self, visitor):
         """
         Devolve que método o visitor deve usar para visitar o nó.
         Caso o nó tenha um método específico usa "method",
