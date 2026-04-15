@@ -1,22 +1,24 @@
 from dataclasses import dataclass
+from .parser import ASTVisitor
 
 @dataclass
 class Node:
-    """Classe base para todos os nós da AST."""
-    lineno: int
+    """
+    Classe pai para todos os nós da AST.
+    """
+    lineno: int # numero da linha
 
-    def accept(self, visitor):
+    def accept(self, visitor: ASTVisitor):
         """
-        Implementa o padrão Visitor.
-        Chama visitor.visit_<ClassName>(self).
-        Usado pelo gerador de código e pela análise semântica.
+        Devolve que método o visitor deve usar para visitar o nó.
+        Caso o nó tenha um método específico usa "method",
+        caso contrário usa "generic_visit".
         """
         method = 'visit_' + type(self).__name__
         visit  = getattr(visitor, method, visitor.generic_visit)
-        return visit(self)
+        return visit(self) # Executa a função com o próprio nó como argumento
 
-# Body
-
+# --- Body -------------------------------------------------------------------
 @dataclass
 class Body(Node):
     """
@@ -29,18 +31,18 @@ class Body(Node):
 class VarDecl(Node):
     """
     Um único item na lista de declaração.
-    Ex:  N        →  VarDecl('N', [])
-         NUMS(5)  →  VarDecl('NUMS', [IntLit(5)])
+    Ex:  N        ->  VarDecl('N', [])
+         NUMS(5)  -> VarDecl('NUMS', [IntLit(5)])
     """
     name:       str
     dimensions: list[Node]    # lista de exprs com as dimensões; [] se escalar
 
-# Nós de estrutura do programa
-
+# ---- Nós de estrutura do programa ------------------------------------------
 @dataclass
 class Program(Node):
     """
-    Unidade de tradução completa — pode ter vários program_units.
+    Estrutura geral do código. Pode conter várias unidades
+    (mains, funções, subrotinas).
     Ex:  PROGRAM MAIN ... END
          INTEGER FUNCTION F(...) ... END
     """
@@ -64,8 +66,8 @@ class FunctionDef(Node):
     END NEWLINE
     """
     name:      str
-    params:    list[str]           # nomes dos parâmetros formais
-    return_type: str | None        # 'INTEGER', 'REAL', … ou None (implícito)
+    params:    list[str]           # nomes dos parametros
+    return_type: str | None        # 'INTEGER', 'REAL', etc. ou None (implícito)
     body:      Body
 
 @dataclass
@@ -76,11 +78,10 @@ class SubroutineDef(Node):
     END NEWLINE
     """
     name:   str
-    params: list[str]
+    params: list[str]          # nomes dos parametros
     body:   Body
 
-# Declarações de tipos
-
+# --- Declarações de tipos ------------------------------------------------
 @dataclass
 class TypeDecl(Node):
     """
@@ -92,20 +93,17 @@ class TypeDecl(Node):
     char_len:  int | None      # só para CHARACTER*N; None para outros tipos
     variables: list[VarDecl]
 
-# Linhas com labels
-
+# --- Linhas com labels ------------------------------------------------------
 @dataclass
 class LabeledStmt(Node):
     """
-    Wrapper para uma instrução que tem um label na frente.
     Ex:  10 CONTINUE  →  LabeledStmt(label=10, stmt=Continue())
          20 IF (...)  →  LabeledStmt(label=20, stmt=IfThen(...))
     """
     label: int
     stmt:  Node
 
-# Instruções executáveis
-
+# --- Instruções executáveis -------------------------------------------------
 @dataclass
 class Assign(Node):
     """
@@ -116,7 +114,6 @@ class Assign(Node):
     """
     target: Node    # Var | ArrayAccess
     value:  Node    # qualquer expressão
-
 
 @dataclass
 class IfThen(Node):
@@ -136,7 +133,6 @@ class IfThen(Node):
 class ArithmeticIf(Node):
     """
     IF (<expr>) <stmt>
-    Forma antiga do IF sem THEN (executa stmt se expr ≠ 0).
     """
     condition: Node
     stmt:      Node
@@ -153,19 +149,23 @@ class DoLoop(Node):
     var:      str     # nome da variável de controlo
     start:    Node
     stop:     Node
-    step:     Node | None   # None → step implícito de 1
+    step:     Node | None   # None -> step implícito de 1
     body:     list[Node]
 
 
 @dataclass
 class Goto(Node):
-    """GOTO <label>"""
+    """
+    GOTO <label>
+    """
     label: int
 
 
 @dataclass
 class Continue(Node):
-    """CONTINUE  (marcador de fim de DO loop)"""
+    """
+    CONTINUE  (marcador de fim de DO loop)
+    """
     pass
 
 
@@ -173,39 +173,43 @@ class Continue(Node):
 class PrintStmt(Node):
     """
     PRINT *, <io_list>
-    items é a lista de expressões/strings a imprimir.
     """
-    items: list[Node]
+    items: list[Node] # lista de expressões a imprimir
 
 
 @dataclass
 class ReadStmt(Node):
     """
     READ *, <io_list>
-    targets é a lista de variáveis onde ler os valores.
     """
-    targets: list[Node]
+    targets: list[Node] # lista de variáveis ou elementos de array a ler
 
 
 @dataclass
 class CallStmt(Node):
-    """CALL <name>([<args>])"""
+    """
+    CALL <name>([<args>])
+    """
     name: str
     args: list[Node]
 
 
 @dataclass
 class ReturnStmt(Node):
-    """RETURN"""
+    """
+    RETURN
+    """
     pass
 
 
 @dataclass
 class StopStmt(Node):
-    """STOP"""
+    """
+    STOP
+    """
     pass
 
-# Expressões
+# --- Expressões ---------------------------------------------------------------
 
 @dataclass
 class BinOp(Node):
@@ -224,7 +228,7 @@ class BinOp(Node):
 class UnaryOp(Node):
     """
     Operação unária.
-    op: '-' (negação aritmética) | '+' (identidade) | '.NOT.'
+    op: '-' (negação) | '+' | '.NOT.'
     """
     op:      str
     operand: Node
@@ -234,17 +238,19 @@ class UnaryOp(Node):
 class FuncCall(Node):
     """
     Chamada de função: <name>(<args>)
-    Inclui funções intrínsecas (MOD, SQRT, MAX, MIN) e funções do utilizador.
+    Inclui funções intrínsecas (MOD, SQRT, MAX, MIN) e funções criadas no programa.
     """
     name: str
     args: list[Node]
 
-# Variáveis e literais
+# --- Variáveis e literais ---------------------------------------------------
 
 
 @dataclass
 class Var(Node):
-    """Referência a uma variável simples. Ex: N, FAT, ISPRIM"""
+    """
+    Referência a uma variável simples. Ex: N, FAT, ISPRIM
+    """
     name: str
 
 
@@ -259,23 +265,31 @@ class ArrayAccess(Node):
 
 @dataclass
 class IntLit(Node):
-    """Literal inteiro. Ex: 42, 0, 1"""
+    """
+    Literal inteiro. Ex: 42, 0, 1
+    """
     value: int
 
 
 @dataclass
 class RealLit(Node):
-    """Literal real. Ex: 3.14, 1.5E-3"""
+    """
+    Literal real. Ex: 3.14, 1.5E-3
+    """
     value: float
 
 
 @dataclass
 class StringLit(Node):
-    """Literal de string. Ex: 'Ola, Mundo!'"""
+    """
+    Literal de string. Ex: 'Ola, Mundo!'
+    """
     value: str
 
 
 @dataclass
 class BoolLit(Node):
-    """Literal lógico. Ex: .TRUE., .FALSE."""
+    """
+    Literal lógico. Ex: .TRUE., .FALSE.
+    """
     value: bool
