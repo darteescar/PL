@@ -13,6 +13,8 @@ main_program          -> PROGRAM IDEN NEWLINE body END NEWLINE
 
 function_subprogram   -> type_spec FUNCTION IDEN '(' param_list ')' NEWLINE body END NEWLINE
                        | FUNCTION IDEN '(' param_list ')' NEWLINE body END NEWLINE
+                       | type_spec FUNCTION IDEN '(' ')' NEWLINE body END NEWLINE
+                       | FUNCTION IDEN '(' ')' NEWLINE body END NEWLINE
 
 subroutine_subprogram -> SUBROUTINE IDEN '(' param_list ')' NEWLINE body END NEWLINE
                        | SUBROUTINE IDEN '(' ')' NEWLINE body END NEWLINE
@@ -43,12 +45,7 @@ var_decl_list         -> var_decl
                        | var_decl_list ',' var_decl
 
 var_decl              -> IDEN
-                       | IDEN '(' dim_list ')'
-
-dim_list              -> dim_spec
-                       | dim_list ',' dim_spec
-
-dim_spec              -> expr
+                       | IDEN '(' INT_LIT ')'
 
 statement             -> assignment_stmt
                        | if_stmt
@@ -118,6 +115,7 @@ expr                  -> expr OP_OR expr
 
 variable              -> IDEN
                        | IDEN '(' expr_list ')'
+                       | IDEN '(' ')'
 
 expr_list             -> expr
                        | expr_list ',' expr

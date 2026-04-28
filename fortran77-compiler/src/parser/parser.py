@@ -83,6 +83,22 @@ class Parser:
             lineno=p.lineno(1),
         )
 
+    def p_function_with_type_no_params(self, p):
+        """function_subprogram : type_spec FUNCTION IDEN '(' ')' NEWLINE body END NEWLINE"""
+        p[0] = FunctionDef(
+            name=p[3], params=[],
+            return_type=p[1], body=p[7],
+            lineno=p.lineno(2),
+        )
+
+    def p_function_without_type_no_params(self, p):
+        """function_subprogram : FUNCTION IDEN '(' ')' NEWLINE body END NEWLINE"""
+        p[0] = FunctionDef(
+            name=p[2], params=[],
+            return_type=None, body=p[6],
+            lineno=p.lineno(1),
+        )
+
     def p_subroutine_with_params(self, p):
         """subroutine_subprogram : SUBROUTINE IDEN '(' param_list ')' NEWLINE body END NEWLINE"""
         p[0] = SubroutineDef(
@@ -182,28 +198,14 @@ class Parser:
         """var_decl_list : var_decl_list ',' var_decl"""
         p[0] = p[1] + [p[3]]
 
-    # var_decl: variável simples ou array com dimensões
+    # var_decl: variável simples ou array unidimensional
     def p_var_decl_scalar(self, p):
         """var_decl : IDEN"""
-        p[0] = VarDecl(name=p[1], dimensions=[], lineno=p.lineno(1))
+        p[0] = VarDecl(name=p[1], dimension=1, lineno=p.lineno(1))
 
     def p_var_decl_array(self, p):
-        """var_decl : IDEN '(' dim_list ')'"""
-        p[0] = VarDecl(name=p[1], dimensions=p[3], lineno=p.lineno(1))
-
-    # dim_list: lista de especificações de dimensão
-    def p_dim_list_single(self, p):
-        """dim_list : dim_spec"""
-        p[0] = [p[1]]
-
-    def p_dim_list_multi(self, p):
-        """dim_list : dim_list ',' dim_spec"""
-        p[0] = p[1] + [p[3]]
-
-    # dim_spec: tamanho simples ou intervalo lo:hi
-    def p_dim_spec_size(self, p):
-        """dim_spec : expr"""
-        p[0] = p[1]
+        """var_decl : IDEN '(' INT_LIT ')'"""
+        p[0] = VarDecl(name=p[1], dimension=p[3], lineno=p.lineno(1))
 
     # --- Instruções executáveis ------------------------------------
     def p_statement_assign(self, p):
@@ -457,7 +459,11 @@ class Parser:
 
     def p_variable_array(self, p):
         """variable : IDEN '(' expr_list ')'"""
-        p[0] = ArrayAccess(name=p[1], indices=p[3], lineno=p.lineno(1))
+        p[0] = VarOrFuncCall(name=p[1], args=p[3], lineno=p.lineno(1))
+
+    def p_variable_func_no_params(self, p):
+        """variable : IDEN '(' ')'"""
+        p[0] = VarOrFuncCall(name=p[1], args=[], lineno=p.lineno(1))
 
     def p_expr_list_single(self, p):
         """expr_list : expr"""
@@ -604,9 +610,9 @@ class ASTPrinter(ASTVisitor):
             self.visit(arg)
         self._indent -= 1
 
-    def visit_ArrayAccess(self, node):
-        self._pr(f"ArrayAccess({node.name})")
+    def visit_VarOrFuncCall(self, node):
+        self._pr(f"VarOrFuncCall({node.name})")
         self._indent += 1
-        for idx in node.indices:
-            self.visit(idx)
+        for arg in node.args:
+            self.visit(arg)
         self._indent -= 1

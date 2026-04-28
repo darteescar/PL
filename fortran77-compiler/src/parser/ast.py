@@ -30,11 +30,11 @@ class Body(Node):
 class VarDecl(Node):
     """
     Um único item na lista de declaração.
-    Ex:  N        ->  VarDecl('N', [])
-         NUMS(5)  -> VarDecl('NUMS', [IntLit(5)])
+    Ex:  N        ->  VarDecl('N', 1)
+         NUMS(5)  -> VarDecl('NUMS', 5)
     """
     name:       str
-    dimensions: list[Node]    # lista de exprs com as dimensões; [] se escalar
+    dimension:  int    # 1 se escalar, > 1 se array
 
 # ---- Nós de estrutura do programa ------------------------------------------
 @dataclass
@@ -111,7 +111,7 @@ class Assign(Node):
     Ex:  FAT = FAT * I
          NUMS(I) = 0
     """
-    target: Node    # Var | ArrayAccess
+    target: Node    # Var | VarOrFuncCall
     value:  Node    # qualquer expressão
 
 @dataclass
@@ -236,7 +236,7 @@ class UnaryOp(Node):
 class FuncCall(Node):
     """
     Chamada de função: <name>(<args>)
-    Inclui funções intrínsecas (MOD, SQRT, MAX, MIN) e funções criadas no programa.
+    Inclui funções intrínsecas (MOD, SQRT, MAX, MIN).
     """
     name: str
     args: list[Node]
@@ -251,12 +251,14 @@ class Var(Node):
 
 
 @dataclass
-class ArrayAccess(Node):
+class VarOrFuncCall(Node):
     """
-    Acesso a elemento de array. Ex: NUMS(I), A(I,J)
+    Acesso a elemento de array OU chamada a função de utilizador.
+        Ex:  NUMS(I)  -> VarOrFuncCall(name='NUMS', args=[Var('I')])
+            F(X, Y)   -> VarOrFuncCall(name='F', args=[Var('X'), Var('Y')])
     """
-    name:    str
-    indices: list[Node]
+    name: str
+    args: list[Node]
 
 
 @dataclass
