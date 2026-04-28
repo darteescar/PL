@@ -1,15 +1,17 @@
 from .ast import *
-from .parser import Parser, ParserError, ASTPrinter
+from .parser import Parser, ParserError, ASTVisitor, ASTPrinter
 
 __all__ = [
     "Parser",
     "ParserError",
+    "ASTVisitor",
     "ASTPrinter",
+    "Node",
     "Program", "MainProgram", "FunctionDef", "SubroutineDef",
     "Body", "TypeDecl", "VarDecl", "LabeledStmt",
-    "Assign", "IfThen", "ArithmeticIf", "DoLoop",
+    "Assign", "IfThen", "LogicalIf", "DoLoop",
     "Goto", "Continue", "PrintStmt", "ReadStmt",
     "CallStmt", "ReturnStmt", "StopStmt",
     "BinOp", "UnaryOp", "FuncCall",
-    "Var", "ArrayAccess", "IntLit", "RealLit", "StringLit", "BoolLit",
+    "Var", "VarOrFuncCall", "IntLit", "RealLit", "StringLit", "BoolLit",
 ]

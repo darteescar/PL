@@ -30,11 +30,11 @@ class Body(Node):
 class VarDecl(Node):
     """
     Um único item na lista de declaração.
-    Ex:  N        ->  VarDecl('N', 1)
+    Ex:  N        ->  VarDecl('N', 0)
          NUMS(5)  -> VarDecl('NUMS', 5)
     """
     name:       str
-    dimension:  int    # 1 se escalar, > 1 se array
+    dimension:  int    # 0 se escalar, >= 1 se array
 
 # ---- Nós de estrutura do programa ------------------------------------------
 @dataclass

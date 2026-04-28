@@ -201,7 +201,7 @@ class Parser:
     # var_decl: variável simples ou array unidimensional
     def p_var_decl_scalar(self, p):
         """var_decl : IDEN"""
-        p[0] = VarDecl(name=p[1], dimension=1, lineno=p.lineno(1))
+        p[0] = VarDecl(name=p[1], dimension=0, lineno=p.lineno(1))
 
     def p_var_decl_array(self, p):
         """var_decl : IDEN '(' INT_LIT ')'"""
