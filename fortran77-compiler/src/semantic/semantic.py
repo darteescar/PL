@@ -72,6 +72,7 @@ class SemanticAnalyzer(ASTVisitor):
     @property
     def has_errors(self) -> bool:
         return len(self._errors) > 0
+
     
     # --- Erros semânticos --------------------------------------------------
     def _error(self, message: str, line: int) -> None:
@@ -405,6 +406,14 @@ class SemanticAnalyzer(ASTVisitor):
 
         for stmt in node.body:
             self.visit(stmt)
+        # Fecha o loop automaticamente, pois o CONTINUE é absorvido pelo AST
+        self._do_vars.discard(node.var)
+        if self._do_stack:
+            for i in range(len(self._do_stack) - 1, -1, -1):
+                if self._do_stack[i][0] == node.label:
+                    self._do_stack.pop(i)
+                    break
+        self._define_label(node.label, node.lineno)
 
     def visit_Goto(self, node: Goto) -> None:
         self._reference_label(node.label, node.lineno)
@@ -423,6 +432,11 @@ class SemanticAnalyzer(ASTVisitor):
     def visit_ReadStmt(self, node: ReadStmt) -> None:
         for target in node.targets:
             self._type_of(target)
+            # Regista a variável lida como inicializada
+            if isinstance(target, Var):
+                self._symbol_table.initialize(target.name)
+            elif isinstance(target, VarOrFuncCall):
+                self._symbol_table.initialize(target.name)
 
     def visit_CallStmt(self, node: CallStmt) -> None:
         """
@@ -470,10 +484,8 @@ class SemanticAnalyzer(ASTVisitor):
         """STOP é sempre válido."""
         pass
 
-    # -----------------------------------------------------------------------
-    # Inferência de tipos — expressões
-    # -----------------------------------------------------------------------
 
+    # --- Inferência de tipos -----------------------------------------------
     def _type_of(self, node: Node) -> str | None:
         """
         Infere e devolve o tipo de uma expressão como string.
@@ -513,57 +525,62 @@ class SemanticAnalyzer(ASTVisitor):
         Trata um nó VarOrFuncCall, que o parser produz para qualquer
         expressão da forma  IDEN(args)  — pode ser:
 
-          (a) Acesso a array  - IDEN está declarado como VarSymbol com
+            (a) Acesso a array  - IDEN está declarado como VarSymbol com
                                 is_array == True
-          (b) Chamada de função de utilizador - IDEN está declarado como
-                                SubprogramSymbol com kind == 'FUNCTION'
+            (b) Chamada de função de utilizador - IDEN está declarado como
+                                SubprogramSymbol com kind == 'FUNCTION' (mesmo
+                                que exista um VarSymbol escalar local com o mesmo nome,
+                                que é o padrão no local onde a função é chamada)
 
         Regras de resolução (por ordem):
-          1. Procura primeiro na symbol table como variável.
-             Se encontrar e for array:
-               - verifica que o número de argumentos é 1 (arrays são
-                 unidimensionais neste compilador);
-               - verifica que o índice é INTEGER;
-               - devolve o tipo do array.
-             Se encontrar mas não for array:
-               - emite erro (escalar usado com índice).
-          2. Se não for variável, procura como subprograma.
-             Se encontrar e for FUNCTION:
-               - verifica a aridade;
-               - devolve o tipo de retorno.
-             Se encontrar mas for SUBROUTINE:
-               - emite erro (subrotina usada como expressão).
-          3. Se não encontrar em nenhum dos dois:
-               - emite erro (identificador não declarado).
+            1. Procura primeiro na symbol table como variável.
+                Se encontrar e for array (ou não for array local, mas tmb não for função global):
+                - verifica que o número de argumentos é 1 (arrays são
+                    unidimensionais neste compilador);
+                - verifica que o índice é INTEGER;
+                - devolve o tipo do array.
+                Se encontrar como escalar MAS não houver função correspondente:
+                - emite erro (escalar usado com índice).
+            2. Se não for variável array, procura como subprograma (ou se for Var escalar + função).
+                Se encontrar e for FUNCTION:
+                - verifica a aridade;
+                - devolve o tipo de retorno.
+                Se encontrar mas for SUBROUTINE:
+                - emite erro (subrotina usada como expressão).
+            3. Se não encontrar em nenhum dos dois:
+                - emite erro (identificador não declarado).
         """
         var_sym  = self._symbol_table.lookup_var(node.name)
         func_sym = self._symbol_table.lookup_subprogram(node.name)
 
         # --- Caso (a): acesso a array ---
         if var_sym is not None:
-            if not var_sym.is_array:
+            # Se é também função globamente, e não é array local, assumimos que é chamada de função!
+            if not var_sym.is_array and func_sym is not None:
+                pass # Prossegue para tratar como função (Caso b)
+            elif not var_sym.is_array:
                 self._error(
                     f"'{node.name}' é uma variável escalar; "
                     f"não pode ser indexada.",
                     node.lineno,
                 )
                 return var_sym.var_type
-
-            # Arrays são unidimensionais: deve haver exactamente 1 argumento
-            if len(node.args) != 1:
-                self._error(
-                    f"Array '{node.name}' é unidimensional; "
-                    f"esperado 1 índice, recebeu {len(node.args)}.",
-                    node.lineno,
-                )
             else:
-                itype = self._type_of(node.args[0])
-                if itype is not None and itype != 'INTEGER':
+                # Arrays são unidimensionais: deve haver exactamente 1 argumento
+                if len(node.args) != 1:
                     self._error(
-                        f"O índice de '{node.name}' deve ser INTEGER.",
+                        f"Array '{node.name}' é unidimensional; "
+                        f"esperado 1 índice, recebeu {len(node.args)}.",
                         node.lineno,
                     )
-            return var_sym.var_type
+                else:
+                    itype = self._type_of(node.args[0])
+                    if itype is not None and itype != 'INTEGER':
+                        self._error(
+                            f"O índice de '{node.name}' deve ser INTEGER.",
+                            node.lineno,
+                        )
+                return var_sym.var_type
 
         # --- Caso (b): chamada de função de utilizador ---
         if func_sym is not None:
@@ -686,7 +703,7 @@ class SemanticAnalyzer(ASTVisitor):
         expected_arity, ret_type = _INTRINSICS[node.name]
 
         if expected_arity is not None:
-            # Aridade fixa
+            # Aridade fixa (MOD, SQRT)
             if len(node.args) != expected_arity:
                 self._error(
                     f"'{node.name}' espera {expected_arity} argumento(s), "
@@ -694,7 +711,12 @@ class SemanticAnalyzer(ASTVisitor):
                     node.lineno,
                 )
             for arg in node.args:
-                self._type_of(arg)
+                t = self._type_of(arg)
+                if t is not None and t not in _NUMERIC_TYPES:
+                    self._error(
+                        f"Argumento para a função '{node.name}' deve ser numérico.", 
+                        node.lineno
+                    )
         else:
             # MAX / MIN precisam de pelo menos 2 args numéricos
             if len(node.args) < 2:

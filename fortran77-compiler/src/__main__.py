@@ -2,6 +2,7 @@ import argparse
 
 from lexer import Lexer, Preprocessor
 from parser import Parser, ASTPrinter
+from semantic import SemanticAnalyzer
 
 def main():
     arg_parser = argparse.ArgumentParser(description="Compilador de Fortran 77")
@@ -20,7 +21,7 @@ def main():
     if not (args.lexer or args.parser or args.semantic): # Por default temos a tradução completa
         args.translate = True
     
-    #--- Modo Pré-processamento -------------------------------------
+    # --- Modo Pré-processamento -------------------------------------
     if args.preprocess:
         print("=" * 25)
         print("=> Modo Pré-processamento...")
@@ -89,8 +90,32 @@ def main():
         print("=" * 25)
         print("=> Modo Semantic...")
         print("=" * 25)
-        # TODO: Executar Preprocessor + Lexer + Parser + Semântica
-    
+        
+        try:
+            with open(args.file, "r", encoding="utf-8") as f:
+                src = f.read()
+
+            parser = Parser()
+            ast = parser.parse(src) #* Cria a Abstract Syntax Tree (AST) depois de fazer o parsing *#
+            
+            if ast:
+                semantic_analyzer = SemanticAnalyzer()
+                errors = semantic_analyzer.analyse(ast)
+                
+                if semantic_analyzer.has_errors:
+                    print("Erros Semânticos encontrados:")
+                    for error in errors:
+                        print(error) #! Imprime os erros da análise semântica !#
+                else:
+                    print("A análise semântica não encontrou erros.")
+            else:
+                print("Erro: AST não foi gerada devido a erros de parsing.")
+                for error in parser.errors:
+                    print(error) #! Imprime os erros de parsing, caso existam !#
+
+        except FileNotFoundError:
+            print(f"Erro: O ficheiro '{args.file}' não foi encontrado.")
+            
     # --- Modo Translate --------------------------------------------   
     elif args.translate:
         print("=" * 25)
