@@ -56,6 +56,7 @@ statement             -> assignment_stmt
                        | call_stmt
                        | return_stmt
                        | stop_stmt
+                       | continue_stmt
 
 assignment_stmt       -> variable '=' expr
 
@@ -71,6 +72,8 @@ do_stmt               -> DO INT_LIT IDEN '=' expr ',' expr NEWLINE stmt_section 
                        | DO INT_LIT IDEN '=' expr ',' expr ',' expr NEWLINE stmt_section LABEL CONTINUE
 
 goto_stmt             -> GOTO INT_LIT
+
+continue_stmt         -> CONTINUE
 
 print_stmt            -> PRINT '*' ',' io_list
 

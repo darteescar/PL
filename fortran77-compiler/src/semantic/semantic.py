@@ -70,7 +70,14 @@ class SemanticAnalyser(ASTVisitor):
         self._current_kind: str | None            = None
 
     def analyse(self, ast: Program) -> list[SemanticError]:
-        self._errors = []
+        self._errors       = []
+        self._symbol_table = SymbolTable()
+        self._labels       = {}
+        self._goto_refs    = []
+        self._do_stack     = []
+        self._do_vars      = set()
+        self._current_unit = None
+        self._current_kind = None
         self.visit(ast)
         return list(self._errors)
 
@@ -375,13 +382,10 @@ class SemanticAnalyser(ASTVisitor):
 
     def visit_DoLoop(self, node: DoLoop) -> None:
         """
-        Verifica o DO loop:
-
-        O fecho do loop (pop do _do_stack) é feito em _close_do quando o
-        CONTINUE com o label correspondente for encontrado.
+        Verifica o DO loop.
+        O parser absorve o LABEL CONTINUE terminal, por isso o fecho do
+        _do_stack é feito directamente aqui, após visitar o body.
         """
-        self._reference_label(node.label, node.lineno)
-
         # verifica a variável de controlo
         var_sym = self._symbol_table.lookup_var(node.var)
         if var_sym is None:
@@ -644,6 +648,8 @@ class SemanticAnalyser(ASTVisitor):
                     f"encontrado {t}.",
                     node.lineno,
                 )
+        if lt is None and rt is None:
+            return None
         if lt == 'REAL' or rt == 'REAL':
             return 'REAL'
         return 'INTEGER'

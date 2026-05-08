@@ -163,7 +163,7 @@ class Goto(Node):
 @dataclass
 class Continue(Node):
     """
-    CONTINUE  (marcador de fim de DO loop)
+    CONTINUE
     """
     pass
 

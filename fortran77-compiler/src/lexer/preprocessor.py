@@ -81,7 +81,7 @@ class Preprocessor:
                 )
             
             # Extrai label e código da nova linha
-            current_label   = self._extract_label(line)
+            current_label   = self._extract_label(line, lineno)
             current_content = self._extract_code(line)
             current_start   = lineno
             in_continuation = True
@@ -98,7 +98,7 @@ class Preprocessor:
 
         return self._logical_lines
         
-    def _extract_label(self, line: str) -> str | None:
+    def _extract_label(self, line: str, lineno: int) -> str | None:
         """
         Extrai o label das colunas 1-5.
         """
@@ -108,7 +108,7 @@ class Preprocessor:
             if not label.isdigit():
                 raise PreprocessorError(
                     f"Label inválido: '{label}' (deve ser numérico).",
-                    line_number=0,
+                    line_number=lineno,
                 )
             return label
         return None

@@ -203,7 +203,8 @@ class Parser:
                      | read_stmt
                      | call_stmt
                      | return_stmt
-                     | stop_stmt'''
+                     | stop_stmt
+                     | continue_stmt'''
         p[0] = p[1]
 
     # --- Atribuição ------------------------------------------------
@@ -268,6 +269,11 @@ class Parser:
     def p_goto(self, p):
         """goto_stmt : GOTO INT_LIT"""
         p[0] = Goto(label=p[2], lineno=p.lineno(1))
+
+    # --- CONTINUE --------------------------------------------------
+    def p_continue_stmt(self, p):
+        """continue_stmt : CONTINUE"""
+        p[0] = Continue(lineno=p.lineno(1))
 
     # --- PRINT -----------------------------------------------------
     def p_print_stmt(self, p):
