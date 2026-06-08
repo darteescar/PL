@@ -7,6 +7,8 @@ Projeto de grupo desenvolvido no âmbito da UC de Processamento de Linguagens. O
 * [luis7788](https://github.com/luis7788)
 * [tiagofigueiredo7](https://github.com/tiagofigueiredo7)
 
+### Nota Final: ?? / 20 ⭐️
+
 ---
 
 ### Ficheiros relevantes
@@ -69,6 +71,8 @@ Group project developed for the Language Processing course. The project consists
 * [darteescar](https://github.com/darteescar)
 * [luis7788](https://github.com/luis7788)
 * [tiagofigueiredo7](https://github.com/tiagofigueiredo7)
+
+### Final Mark: ?? / 20 ⭐️
 
 ---
 
